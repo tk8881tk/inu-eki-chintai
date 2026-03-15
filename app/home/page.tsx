@@ -1,0 +1,68 @@
+"use client";
+import { useEffect, useState } from "react";
+import { db } from "../lib/firebase";
+import { collection, onSnapshot } from "firebase/firestore";
+
+export default function HomePage() {
+  const [listings, setListings] = useState<any[]>([]);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [sortBy, setSortBy] = useState("price_asc"); // 並び替え条件
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, "sourceListings"), (snapshot) => {
+      let data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      
+      // 並び替えロジック
+      data.sort((a, b) => {
+        if (sortBy === "price_asc") return a.monthlyTotal - b.monthlyTotal;
+        if (sortBy === "price_desc") return b.monthlyTotal - a.monthlyTotal;
+        return 0;
+      });
+      
+      setListings(data);
+    });
+    return () => unsubscribe();
+  }, [sortBy]);
+
+  return (
+    <div className="pb-24 bg-pink-50 min-h-screen font-sans">
+      <header className="sticky top-0 bg-white/80 backdrop-blur-md p-6 shadow-sm z-10 rounded-b-3xl">
+        <h1 className="text-xl font-bold text-pink-400 text-center tracking-widest">♡ まゆ引っ越し大作戦 ♡</h1>
+        
+        {/* A案：並び替えボタン */}
+        <div className="flex justify-center gap-2 mt-4">
+          <button onClick={() => setSortBy("price_asc")} className="text-[10px] bg-pink-100 px-3 py-1 rounded-full text-pink-500">安い順</button>
+          <button onClick={() => setSortBy("price_desc")} className="text-[10px] bg-pink-100 px-3 py-1 rounded-full text-pink-500">高い順</button>
+        </div>
+      </header>
+
+      <main className="p-4 grid gap-6">
+        {listings.map((item) => (
+          <div key={item.id} className="bg-white rounded-3xl shadow-lg border border-pink-100 overflow-hidden">
+            <div className="h-40 bg-pink-100 flex items-center justify-center text-pink-300">ᕱ⑅ᕱ</div>
+            <div className="p-5">
+              <h2 className="font-bold text-gray-700 text-lg">{item.title}</h2>
+              <p className="text-pink-400 text-sm font-medium">{item.station}駅</p>
+              <div className="mt-4 flex justify-between items-end">
+                <p className="text-3xl font-black text-pink-500">{item.monthlyTotal.toLocaleString()}円</p>
+                <button 
+                  onClick={() => setFavorites(prev => new Set(prev.has(item.id) ? [...prev].filter(i => i !== item.id) : [...prev, item.id]))}
+                  className={`p-3 rounded-full ${favorites.has(item.id) ? "bg-pink-500 text-white" : "bg-pink-100 text-pink-500"}`}
+                >♥</button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </main>
+
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-pink-100 rounded-t-3xl p-4 shadow-2xl flex justify-around items-center z-50">
+        {['ホーム', '条件', 'お気に入り', '通知'].map((label) => (
+          <button key={label} className="text-pink-400 text-xs font-bold flex flex-col items-center">
+            <span className="text-xl mb-1">♡</span>{label}
+          </button>
+        ))}
+      </nav>
+    </div>
+  );
+}
+画面が変わったら、「既存のリポジトリをコマンドラインからプッシュする (…or push an existing repository from the command line)」 という見出しを探してください。そこに黒い枠で囲まれたコマンドが3行ほどあります。
